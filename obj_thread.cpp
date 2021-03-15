@@ -103,13 +103,13 @@ void obj_thread::target_set(double num1, double num2, double num3)
         memset(&addr2, 0, sizeof(addr2));
         addr2.sin_family = AF_INET;
         addr2.sin_port   = htons(port2);
-        addr2.sin_addr.s_addr = inet_addr("255.255.255");
-
-        // Time out
+        addr2.sin_addr.s_addr = inet_addr("255.255.255.255");
+        int optval = 1;
+        /* Time out
         struct timeval tv;
         tv.tv_sec  = 0;
-        tv.tv_usec = 200000;  // 200 ms
-        setsockopt(brdfd, SOL_SOCKET, SO_BROADCAST | SO_REUSEADDR, (const char*)&tv, sizeof(struct timeval));
+        tv.tv_usec = 200000;  // 200 ms*/
+        setsockopt(brdfd, SOL_SOCKET, SO_BROADCAST | SO_REUSEADDR, &optval, sizeof(int));
 
         /*if (bind(brdfd, (struct sockaddr*)&addr2, addr_len2) == -1){
             printf("Failed to bind socket on port %d\n", port2);

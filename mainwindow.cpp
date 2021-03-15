@@ -26,16 +26,16 @@ MainWindow::MainWindow(QWidget *parent)
     m_objThread= new QThread();
     th_sub = new obj_thread();
     th_sub->moveToThread(m_objThread);
-    t_str1 = ui->label_8->text();
-    t_str2 = ui->label_10->text();
-    t_str3 = ui->label_12->text();
+    t_str1 = ui->lineEdit->text();
+    t_str2 = ui->lineEdit_2->text();
+    t_str3 = ui->lineEdit_3->text();
 
     myTimer = new QTimer(this);
     myTimer2 = new QTimer(this);
 
     connect(myTimer, &QTimer::timeout, th_sub, &obj_thread::dealMsg);
     connect(myTimer2, &QTimer::timeout, this, &MainWindow::t_set);
-    //connect(m_objThread,&QThread::finished,m_objThread,&QObject::deleteLater);
+    connect(m_objThread,&QThread::finished,m_objThread,&QObject::deleteLater);
     //connect(this,&MainWindow::Signal_close,th_sub,&obj_thread::stop);
     //connect(ui->checkBox_2, SIGNAL(stateChanged(int)), this,SLOT(&obj_thread::dealMsg));
     connect(ui->pushButton, SIGNAL(clicked(bool)), this,SLOT(ThreadCtrl()));
@@ -194,7 +194,7 @@ void MainWindow::ThreadStop2()
     ui->label_14->setText("no order");
 }
 void MainWindow::t_set(){
-   emit signal_set_pos(t_str1.toFloat(),t_str2.toFloat(),t_str3.toFloat());
+   emit signal_set_pos(ui->lineEdit->text().toFloat(),ui->lineEdit_2->text().toFloat(),ui->lineEdit_3->text().toFloat());
 }
 
 
