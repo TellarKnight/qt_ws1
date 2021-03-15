@@ -21,7 +21,7 @@
 #include <cstring>
 #include <iostream>
 #include <QString>
-
+#include<errno.h>
 
 obj_thread::obj_thread(QObject *parent):QObject(parent)
 {
@@ -90,10 +90,10 @@ void obj_thread::target_set(double num1, double num2, double num3)
         target[2]=num3;
 
         int port2 = 9999;
-        int sockfd2;
+        int brdfd;
         // 创建socket
-        sockfd2 = socket(AF_INET, SOCK_DGRAM, 0);
-        if(-1==sockfd2){
+        brdfd = socket(PF_INET, SOCK_DGRAM, 0);
+        if(-1==brdfd){
             puts("Failed to create socket");
         }
 
@@ -103,20 +103,24 @@ void obj_thread::target_set(double num1, double num2, double num3)
         memset(&addr2, 0, sizeof(addr2));
         addr2.sin_family = AF_INET;
         addr2.sin_port   = htons(port2);
-        addr2.sin_addr.s_addr = htonl(INADDR_ANY);
+        addr2.sin_addr.s_addr = inet_addr("255.255.255");
 
         // Time out
         struct timeval tv;
         tv.tv_sec  = 0;
         tv.tv_usec = 200000;  // 200 ms
-        setsockopt(sockfd2, SOL_SOCKET, SO_RCVTIMEO, (const char*)&tv, sizeof(struct timeval));
+        setsockopt(brdfd, SOL_SOCKET, SO_BROADCAST | SO_REUSEADDR, (const char*)&tv, sizeof(struct timeval));
 
-        if (bind(sockfd2, (struct sockaddr*)&addr2, addr_len2) == -1){
+        /*if (bind(brdfd, (struct sockaddr*)&addr2, addr_len2) == -1){
             printf("Failed to bind socket on port %d\n", port2);
-            close(sockfd2);
-        }
+            close(brdfd);
+        }*/
 
-        sendto(sockfd2, target, sizeof(target), 0, (sockaddr*)&addr2, addr_len2);
-        printf("Sended");
-        close(sockfd2);
+        if(sendto(brdfd, target, sizeof(target), 0, (sockaddr*)&addr2, addr_len2)==-1){
+            printf("sendto fail, errno=%d\n", errno);
+        }
+        else{
+            printf("Sended:%f\n",target[0]);
+        }
+        close(brdfd);
 }

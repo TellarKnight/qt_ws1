@@ -42,7 +42,7 @@ MainWindow::MainWindow(QWidget *parent)
     //connect(this,&MainWindow::Signal_sub,th_sub,&obj_thread::dealMsg);
     //connect(this,SIGNAL(Signal_sub(bool)),th_sub,SLOT(dealMsg()));
     connect(ui->pushButton_2, SIGNAL(clicked(bool)),this,SLOT(ThreadStop()));
-    connect(ui->pushButton_2, SIGNAL(clicked(bool)),this,SLOT(ThreadStop2()));
+    connect(ui->pushButton_5, SIGNAL(clicked(bool)),this,SLOT(ThreadStop2()));
     //connect(this,SIGNAL(Signal_sub(bool)),th_sub,SLOT(dealMsg()));
     connect(th_sub,SIGNAL(signal_show(double,double,double)),this,SLOT(updatedataSlot(double,double,double)));
     connect(th_sub,SIGNAL(signal_show(double,double,double)),this,SLOT(pos_show(double,double,double)));
@@ -177,10 +177,11 @@ void MainWindow::ThreadCtrl2()
     //若定时器没有工作
     if(myTimer2->isActive() == false)
     {
-        myTimer2->start(50);
+        myTimer2->start(500);
     }
     //启动线程，处理数据
     m_objThread->start();
+    ui->label_14->setText("sending");
 }
 
 void MainWindow::ThreadStop()
@@ -190,6 +191,7 @@ void MainWindow::ThreadStop()
 void MainWindow::ThreadStop2()
 {
     myTimer2->stop(); //关闭定时器
+    ui->label_14->setText("no order");
 }
 void MainWindow::t_set(){
    emit signal_set_pos(t_str1.toFloat(),t_str2.toFloat(),t_str3.toFloat());
