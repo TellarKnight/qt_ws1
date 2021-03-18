@@ -16,6 +16,11 @@
 #include <cstdio>
 #include <cstring>
 #include <iostream>
+#include <ros/ros.h>
+#include <geometry_msgs/PoseStamped.h>
+#include <geometry_msgs/TwistStamped.h>
+#include <mavros_msgs/CommandBool.h>
+#include <mavros_msgs/SetMode.h>
 
 MainWindow::MainWindow(QWidget *parent)
     : QMainWindow(parent)
@@ -30,11 +35,11 @@ MainWindow::MainWindow(QWidget *parent)
     t_str2 = ui->lineEdit_2->text();
     t_str3 = ui->lineEdit_3->text();
 
-    myTimer = new QTimer(this);
-    myTimer2 = new QTimer(this);
+    Timer_get_pos = new QTimer(this);
+    Timer_set_pos = new QTimer(this);
 
-    connect(myTimer, &QTimer::timeout, th_sub, &obj_thread::dealMsg);
-    connect(myTimer2, &QTimer::timeout, this, &MainWindow::t_set);
+    connect(Timer_get_pos, &QTimer::timeout, th_sub, &obj_thread::dealMsg);
+    connect(Timer_set_pos, &QTimer::timeout, this, &MainWindow::t_set);
     connect(m_objThread,&QThread::finished,m_objThread,&QObject::deleteLater);
     //connect(this,&MainWindow::Signal_close,th_sub,&obj_thread::stop);
     //connect(ui->checkBox_2, SIGNAL(stateChanged(int)), this,SLOT(&obj_thread::dealMsg));
@@ -48,11 +53,12 @@ MainWindow::MainWindow(QWidget *parent)
     connect(th_sub,SIGNAL(signal_show(double,double,double)),this,SLOT(pos_show(double,double,double)));
     connect(ui->pushButton_6,SIGNAL(clicked(bool)),this,SLOT(ThreadCtrl2()));
     connect(this,&MainWindow::signal_set_pos,th_sub,&obj_thread::target_set);
-
+    connect(ui->pushButton_7,SIGNAL(clicked(bool)),this,SLOT(data_clear()));
+    connect(ui->pushButton_4,SIGNAL(clicked(bool)),this,SLOT(get_back()));
+    connect(this,&MainWindow::signal_back,th_sub,&obj_thread::target_set);
+    connect(ui->verticalSlider,SIGNAL(valueChanged(int)),this,SLOT(show_speed(int)));
     //m_objThread->start();
-    /**start**/
-    //ThreadCtrl(int state);
-    //SendStart();
+
     setupRealtimeDataDemo(ui->qwtPlot);
 }
 
@@ -132,14 +138,12 @@ void MainWindow::updatedataSlot(double num1,double num2,double num3){
     double fpstime = (double)eltime/1000.0-lastFpsKey;
     if ( fpstime> 2) // average fps over 2 seconds
     {
-        ui->statusbar->showMessage(
-                    QString("%1 FPS")
-                    .arg(frameCount/fpstime, 0, 'f', 0)
-                    , 0);
+        ui->statusbar->showMessage(QString("%1 FPS").arg(frameCount/fpstime, 0, 'f', 0), 0);
         lastFpsKey = (double)eltime/1000.0;
         frameCount = 0;
     }
 }
+
 void MainWindow::pos_show(double num1,double num2,double num3){
    ui->label_6->setText(QString::number(num1));
    ui->label_4->setText(QString::number(num2));
@@ -163,9 +167,9 @@ void MainWindow::ThreadCtrl()
 {
 
     //若定时器没有工作
-    if(myTimer->isActive() == false)
+    if(Timer_get_pos->isActive() == false)
     {
-        myTimer->start(50);
+        Timer_get_pos->start(50);
     }
     //启动线程，处理数据
 
@@ -174,27 +178,50 @@ void MainWindow::ThreadCtrl()
 void MainWindow::ThreadCtrl2()
 {
 
-    //若定时器没有工作
-    if(myTimer2->isActive() == false)
+    if(Timer_set_pos->isActive() == false)
     {
-        myTimer2->start(500);
+        Timer_set_pos->start(500);
     }
     //启动线程，处理数据
     m_objThread->start();
-    ui->label_14->setText("sending");
+    ui->lineEdit_4->setText("sending");
 }
 
 void MainWindow::ThreadStop()
 {
-    myTimer->stop(); //关闭定时器
+    Timer_get_pos->stop(); //关闭位置获取定时器
 }
+
 void MainWindow::ThreadStop2()
 {
-    myTimer2->stop(); //关闭定时器
-    ui->label_14->setText("no order");
+    Timer_set_pos->stop(); //关闭定时器
+    ui->lineEdit_4->setText("waiting orders");
 }
+
 void MainWindow::t_set(){
-   emit signal_set_pos(ui->lineEdit->text().toFloat(),ui->lineEdit_2->text().toFloat(),ui->lineEdit_3->text().toFloat());
+   emit signal_set_pos(ui->lineEdit->text().toDouble(),ui->lineEdit_2->text().toDouble(),ui->lineEdit_3->text().toDouble(),ui->label_8->text().toDouble());
+   //emit signal_set_pos(ui->lineEdit->text().toFloat(),ui->lineEdit_2->text().toFloat(),ui->lineEdit_3->text().toFloat());
 }
 
+void MainWindow::data_clear(){
+    ui->label_6->setText("0.00");
+    ui->label_4->setText("0.00");
+    ui->label->setText("0.00");
+    ui->lineEdit->setText("0.00");
+    ui->lineEdit_2->setText("0.00");
+    ui->lineEdit_3->setText("0.00");
+    curve->setSamples({},{});
+    ui->qwtPlot->replot();
+    xdata={};
+    ydata={};
+    ui->verticalSlider->setValue(0);
+}
 
+void MainWindow::get_back(){
+    m_objThread->start();
+    emit signal_back(0,0,0,0);
+}
+
+void MainWindow::show_speed(int value){
+    ui->label_8->setText(QString::number((double)value/50));
+}

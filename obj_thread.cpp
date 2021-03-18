@@ -83,11 +83,12 @@ void obj_thread::dealMsg()
        close(sockfd);
 }
 
-void obj_thread::target_set(double num1, double num2, double num3)
+void obj_thread::target_set(double num1, double num2, double num3,double num4)
 {
         target[0]=num1;
         target[1]=num2;
         target[2]=num3;
+        target[3]=num4;
 
         int port2 = 9999;
         int brdfd;
@@ -120,7 +121,7 @@ void obj_thread::target_set(double num1, double num2, double num3)
             printf("sendto fail, errno=%d\n", errno);
         }
         else{
-            printf("Sended:%f\n",target[0]);
+            printf("Sended:%f\n",target[3]);
         }
         close(brdfd);
 }

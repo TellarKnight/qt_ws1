@@ -32,6 +32,7 @@
 #include <obj_thread.h>
 #include <QThread>
 #include <QCheckBox>
+#include <QSlider>
 
 QT_BEGIN_NAMESPACE
 namespace Ui { class MainWindow; }
@@ -46,8 +47,8 @@ public:
     ~MainWindow();
     QVector<double> xdata;
     QVector<double> ydata;
-    QTimer *myTimer;
-    QTimer *myTimer2;
+    QTimer *Timer_get_pos;
+    QTimer *Timer_set_pos;
     QTimer updateTimer;
     QString demoName;
     QwtPlotCurve *curve ;
@@ -66,7 +67,9 @@ signals:
     //void Signal_sub(bool);
     void signal_show(double num1,double num2,double num3);
     //void Signal_close(bool);
-    void signal_set_pos(double num1,double num2,double num3);
+    //void signal_set_pos(double num1,double num2,double num3,double num4)
+    void signal_set_pos(double num1,double num2,double num3,double num4);
+    void signal_back(double num1,double num2,double num3,double num4);
 
 public slots:
     //void on_buttonClose_clicked();
@@ -77,6 +80,10 @@ public slots:
     void ThreadStop();
     void ThreadStop2();
     void t_set();
+    void data_clear();
+    //void disarm();
+    void get_back();
+    void show_speed(int num);
 
 private:
     Ui::MainWindow *ui;

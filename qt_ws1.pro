@@ -22,13 +22,16 @@ FORMS += \
 
 INCLUDEPATH += /usr/local/qwt-6.1.6/include \
                /usr/local/include/opencv4 \
-               /usr/local/include/opencv4/opencv2
+               /usr/local/include/opencv4/opencv2 \
+               /opt/ros/melodic/include
 
 LIBS += -L"/usr/local/qwt-6.1.6/lib" -lqwt \
        /usr/local/lib/libopencv_highgui.so \
        /usr/local/lib/libopencv_core.so    \
        /usr/local/lib/libopencv_imgproc.so \
-       /usr/local/lib/libopencv_imgcodecs.so
+       /usr/local/lib/libopencv_imgcodecs.so \
+       -L/opt/ros/melodic/lib -lroscpp -lrospack -lpthread -lrosconsole -lrosconsole_log4cxx -lrosconsole_backend_interface -lxmlrpcpp -lroscpp_serialization -lrostime  -lcpp_common  -lroslib -ltf  -lyaml-cpp -lkdl_conversions \
+       #-l:/opt/ros/melodic/lib/libroslib.so
 
 # Default rules for deployment.
 qnx: target.path = /tmp/$${TARGET}/bin
