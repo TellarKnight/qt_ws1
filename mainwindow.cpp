@@ -41,14 +41,9 @@ MainWindow::MainWindow(QWidget *parent)
     connect(Timer_get_pos, &QTimer::timeout, th_sub, &obj_thread::dealMsg);
     connect(Timer_set_pos, &QTimer::timeout, this, &MainWindow::t_set);
     connect(m_objThread,&QThread::finished,m_objThread,&QObject::deleteLater);
-    //connect(this,&MainWindow::Signal_close,th_sub,&obj_thread::stop);
-    //connect(ui->checkBox_2, SIGNAL(stateChanged(int)), this,SLOT(&obj_thread::dealMsg));
     connect(ui->pushButton, SIGNAL(clicked(bool)), this,SLOT(ThreadCtrl()));
-    //connect(this,&MainWindow::Signal_sub,th_sub,&obj_thread::dealMsg);
-    //connect(this,SIGNAL(Signal_sub(bool)),th_sub,SLOT(dealMsg()));
     connect(ui->pushButton_2, SIGNAL(clicked(bool)),this,SLOT(ThreadStop()));
     connect(ui->pushButton_5, SIGNAL(clicked(bool)),this,SLOT(ThreadStop2()));
-    //connect(this,SIGNAL(Signal_sub(bool)),th_sub,SLOT(dealMsg()));
     connect(th_sub,SIGNAL(signal_show(double,double,double)),this,SLOT(updatedataSlot(double,double,double)));
     connect(th_sub,SIGNAL(signal_show(double,double,double)),this,SLOT(pos_show(double,double,double)));
     connect(ui->pushButton_6,SIGNAL(clicked(bool)),this,SLOT(ThreadCtrl2()));
@@ -57,7 +52,6 @@ MainWindow::MainWindow(QWidget *parent)
     connect(ui->pushButton_4,SIGNAL(clicked(bool)),this,SLOT(get_back()));
     connect(this,&MainWindow::signal_back,th_sub,&obj_thread::target_set);
     connect(ui->verticalSlider,SIGNAL(valueChanged(int)),this,SLOT(show_speed(int)));
-    //m_objThread->start();
 
     setupRealtimeDataDemo(ui->qwtPlot);
 }
@@ -75,10 +69,6 @@ MainWindow::~MainWindow()
 
 void MainWindow::setupRealtimeDataDemo(QwtPlot *qwtplot)
 {
-
-    //xdata.append(0);
-    //ydata.append(0);
-
     demoName = "trajectory";
     qwtplot->setTitle(demoName);
     qwtplot->setCanvasBackground(Qt::black);//背景
@@ -119,8 +109,6 @@ void MainWindow::updatedataSlot(double num1,double num2,double num3){
     static int lastpointtime = 0;
     int size = (eltime - lastpointtime);
     if(size>0){//有数据传入
-        //xdata.erase(xdata.begin(),xdata.begin()+size);//擦除多余的数据
-        //ydata.erase(ydata.begin(),ydata.begin()+size);
         for(int i=1;i<size+1;i++){
             xdata.append(num1);
             ydata.append(num2);
@@ -169,10 +157,9 @@ void MainWindow::ThreadCtrl()
     //若定时器没有工作
     if(Timer_get_pos->isActive() == false)
     {
-        Timer_get_pos->start(50);
+        Timer_get_pos->start(25);
     }
     //启动线程，处理数据
-
     m_objThread->start();
 }
 void MainWindow::ThreadCtrl2()
@@ -189,12 +176,12 @@ void MainWindow::ThreadCtrl2()
 
 void MainWindow::ThreadStop()
 {
-    Timer_get_pos->stop(); //关闭位置获取定时器
+    Timer_get_pos->stop(); //关闭当前位置获取定时器
 }
 
 void MainWindow::ThreadStop2()
 {
-    Timer_set_pos->stop(); //关闭定时器
+    Timer_set_pos->stop(); //关闭目标地点发送定时器
     ui->lineEdit_4->setText("waiting orders");
 }
 
