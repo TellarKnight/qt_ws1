@@ -5,4 +5,5 @@ The version of Qt should be Qt5. Additionally, a plugin named "qwtPlot" must be 
 the project can work as expected.
 The tutorial of the installation can be referred to on the website below:
 https://blog.csdn.net/qq_19473923/article/details/53519805
-
+Source code of qwtPlot downloading:
+https://sourceforge.net/projects/qwt/
