@@ -35,7 +35,7 @@ obj_thread::~obj_thread()
 void obj_thread::dealMsg()
 {
       int port = 7999;
-      int sockfd;
+      //int counter = 0;
       sockfd = socket(AF_INET, SOCK_DGRAM, 0);
       if(-1==sockfd){
       puts("Failed to create socket");
@@ -63,19 +63,22 @@ void obj_thread::dealMsg()
        }
 
        //memset(buffer, 0, 3);
-       float buffer[3];
-       int counter = 0;
+       float buffer[7];
        struct sockaddr_in src;
        socklen_t src_len = sizeof(src);
        memset(&src, 0, sizeof(src));
 
        int sz = recvfrom(sockfd, buffer, sizeof(buffer), 0, (sockaddr*)&src, &src_len);
        if (sz > 0){
-            pos_z = buffer[2];
-            pos_y = buffer[1];
             pos_x = buffer[0];
-            //printf("Get Message %d: %f\n", counter++, pos_z);
-            emit signal_show(pos_x,pos_y,pos_z);
+            pos_y = buffer[1];
+            pos_z = buffer[2];
+            vision_x = buffer[3];
+            vision_y = buffer[4];
+            vision_z = buffer[5];
+            dst_reached = buffer[6];
+            //printf("Get Message %d: %f\n", counter++, vision_z);
+            emit signal_show(pos_x, pos_y, pos_z,vision_x, vision_y, vision_z,dst_reached);
             }
             else{
                puts("timeout");
@@ -91,7 +94,6 @@ void obj_thread::target_set(double num1, double num2, double num3,double num4)
         target[3]=num4;
 
         int port2 = 9999;
-        int brdfd;
         // 创建socket
         brdfd = socket(PF_INET, SOCK_DGRAM, 0);
         if(-1==brdfd){
@@ -121,7 +123,7 @@ void obj_thread::target_set(double num1, double num2, double num3,double num4)
             printf("sendto fail, errno=%d\n", errno);
         }
         else{
-            printf("Sended:%f\n",target[3]);
+            //printf("Sended:%f\n",target[3]);
         }
         close(brdfd);
 }

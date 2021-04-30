@@ -6,12 +6,12 @@
 #include <QThread>
 #include <QString>
 #include <cstring>
-#include<sys/select.h>
-#include<unistd.h>
-#include<sys/types.h>
-#include<sys/socket.h>
-#include<arpa/inet.h>
-#include<netinet/in.h>
+#include <sys/select.h>
+#include <unistd.h>
+#include <sys/types.h>
+#include <sys/socket.h>
+#include <arpa/inet.h>
+#include <netinet/in.h>
 #include <cstdlib>
 #include <cstdio>
 #include <cstring>
@@ -21,6 +21,13 @@
 #include <geometry_msgs/TwistStamped.h>
 #include <mavros_msgs/CommandBool.h>
 #include <mavros_msgs/SetMode.h>
+#include <fstream>
+#include <stdlib.h>
+#include <sstream>
+#include <iomanip>
+#include <chrono>
+
+using namespace std;
 
 MainWindow::MainWindow(QWidget *parent)
     : QMainWindow(parent)
@@ -40,18 +47,19 @@ MainWindow::MainWindow(QWidget *parent)
 
     connect(Timer_get_pos, &QTimer::timeout, th_sub, &obj_thread::dealMsg);
     connect(Timer_set_pos, &QTimer::timeout, this, &MainWindow::t_set);
-    connect(m_objThread,&QThread::finished,m_objThread,&QObject::deleteLater);
+    //connect(m_objThread,&QThread::finished,m_objThread,&QObject::deleteLater);
     connect(ui->pushButton, SIGNAL(clicked(bool)), this,SLOT(ThreadCtrl()));
     connect(ui->pushButton_2, SIGNAL(clicked(bool)),this,SLOT(ThreadStop()));
-    connect(ui->pushButton_5, SIGNAL(clicked(bool)),this,SLOT(ThreadStop2()));
-    connect(th_sub,SIGNAL(signal_show(double,double,double)),this,SLOT(updatedataSlot(double,double,double)));
-    connect(th_sub,SIGNAL(signal_show(double,double,double)),this,SLOT(pos_show(double,double,double)));
+    //connect(ui->pushButton_5, SIGNAL(clicked(bool)),this,SLOT(ThreadStop2()));
+    connect(th_sub,SIGNAL(signal_show(double,double,double,double,double,double,double)),this,SLOT(updatedataSlot(double,double,double,double,double,double,double)));
+    //connect(th_sub,SIGNAL(signal_show(double,double,double)),this,SLOT(pos_show(double,double,double)));
     connect(ui->pushButton_6,SIGNAL(clicked(bool)),this,SLOT(ThreadCtrl2()));
     connect(this,&MainWindow::signal_set_pos,th_sub,&obj_thread::target_set);
     connect(ui->pushButton_7,SIGNAL(clicked(bool)),this,SLOT(data_clear()));
     connect(ui->pushButton_4,SIGNAL(clicked(bool)),this,SLOT(get_back()));
-    connect(this,&MainWindow::signal_back,th_sub,&obj_thread::target_set);
+    //connect(this,&MainWindow::signal_back,th_sub,&obj_thread::target_set);
     connect(ui->verticalSlider,SIGNAL(valueChanged(int)),this,SLOT(show_speed(int)));
+    connect(ui->btn_log,SIGNAL(clicked(bool)),this,SLOT(save_log()));
 
     setupRealtimeDataDemo(ui->qwtPlot);
 }
@@ -75,8 +83,12 @@ void MainWindow::setupRealtimeDataDemo(QwtPlot *qwtplot)
     qwtplot->insertLegend(new QwtLegend(),QwtPlot::RightLegend);//标签
 
     curve = new QwtPlotCurve();
-    curve->setTitle("position");//曲线名字
+    curve->setTitle("position_fused");//曲线名字
     curve->setPen( Qt::yellow, 1 );//曲线的颜色 宽度;
+
+    curve_vision = new QwtPlotCurve();
+    curve_vision->setTitle("position_vision");//曲线名字
+    curve_vision->setPen( Qt::red, 1 );//曲线的颜色 宽度;
 
     QTime curtime;
     curtime=curtime.currentTime();
@@ -103,21 +115,47 @@ void MainWindow::setupRealtimeDataDemo(QwtPlot *qwtplot)
 }
 
 //更新xdata，ydata
-void MainWindow::updatedataSlot(double num1,double num2,double num3){
+void MainWindow::updatedataSlot(double num1,double num2,double num3, double num4,double num5,double num6,double num7){
+    ui->PosxValueLabel->setText(QString::number(num1,'f',4));
+    ui->PosyValueLabel->setText(QString::number(num2,'f',4));
+    ui->PoszValueLabel->setText(QString::number(num3,'f',4));
+    ui->label_vision_x->setText(QString::number(num4,'f',4));
+    ui->label_vision_y->setText(QString::number(num5,'f',4));
+    ui->label_vision_z->setText(QString::number(num6,'f',4));
+    dst_arrived=num7;
+    if(dst_arrived==1){
+        ui->lineEdit_offb_state->setText("arrived");
+        //printf("Sended:%f\n",dst_arrived);
+        }
+        else if(dst_arrived==0){
+            ui->lineEdit_offb_state->setText("not yet");
+        }
+        else{
+          ui->lineEdit_offb_state->setText("no offboard");
+    }
     static QTime dataTime(QTime::currentTime());
     long int eltime = dataTime.elapsed();
     static int lastpointtime = 0;
-    int size = (eltime - lastpointtime);
+    size = (eltime - lastpointtime);
     if(size>0){//有数据传入
-        for(int i=1;i<size+1;i++){
-            xdata.append(num1);
-            ydata.append(num2);
-        }
-        lastpointtime = eltime;
+       xdata_pos.append(num1);
+       ydata_pos.append(num2);
+       zdata_pos.append(num3);
+       xdata_vision.append(num4);
+       ydata_vision.append(num5);
+       zdata_vision.append(num6);
+       count_pos=count_pos+1;
+       lastpointtime = eltime;
     }
-
-    curve->setSamples(xdata,ydata);
+    if(count_pos>1){
+      if((xdata_pos[count_pos-2]-xdata_pos[count_pos-1]>0.2)||(ydata_pos[count_pos-2]-ydata_pos[count_pos-1]>0.2)||(zdata_pos[count_pos-2]-zdata_pos[count_pos-1]>0.2)){
+        emit signal_set_pos(0,0,0,3);
+      }
+    }
+    curve->setSamples(xdata_pos,ydata_pos);
     curve->attach(ui->qwtPlot);
+    curve_vision->setSamples(xdata_vision,ydata_vision);
+    curve_vision->attach(ui->qwtPlot);
     ui->qwtPlot->replot();
 
     static double lastFpsKey;
@@ -132,11 +170,6 @@ void MainWindow::updatedataSlot(double num1,double num2,double num3){
     }
 }
 
-void MainWindow::pos_show(double num1,double num2,double num3){
-   ui->label_6->setText(QString::number(num1));
-   ui->label_4->setText(QString::number(num2));
-   ui->label->setText(QString::number(num3));
-}
 
 //调用线程的runSomeBigWork2
 /*void MainWindow::onButtonObjectMove2Thread2Clicked()
@@ -157,7 +190,7 @@ void MainWindow::ThreadCtrl()
     //若定时器没有工作
     if(Timer_get_pos->isActive() == false)
     {
-        Timer_get_pos->start(25);
+        Timer_get_pos->start(50);
     }
     //启动线程，处理数据
     m_objThread->start();
@@ -167,7 +200,7 @@ void MainWindow::ThreadCtrl2()
 
     if(Timer_set_pos->isActive() == false)
     {
-        Timer_set_pos->start(500);
+        Timer_set_pos->start(50);
     }
     //启动线程，处理数据
     m_objThread->start();
@@ -177,38 +210,101 @@ void MainWindow::ThreadCtrl2()
 void MainWindow::ThreadStop()
 {
     Timer_get_pos->stop(); //关闭当前位置获取定时器
+    m_objThread->exit();
 }
 
-void MainWindow::ThreadStop2()
+/*void MainWindow::ThreadStop2()
 {
     Timer_set_pos->stop(); //关闭目标地点发送定时器
     ui->lineEdit_4->setText("waiting orders");
-}
+}*/
 
 void MainWindow::t_set(){
-   emit signal_set_pos(ui->lineEdit->text().toDouble(),ui->lineEdit_2->text().toDouble(),ui->lineEdit_3->text().toDouble(),ui->label_8->text().toDouble());
+   count_tset=count_tset+1;
+   if(count_tset<21)
+   {
+     emit signal_set_pos(ui->lineEdit->text().toDouble(),ui->lineEdit_2->text().toDouble(),ui->lineEdit_3->text().toDouble(),ui->lineEdit_tkf->text().toDouble());
+     printf("%d\n",count_tset);
+   }
+   else
+   {
+      count_tset=0;
+      Timer_set_pos->stop();
+      ui->lineEdit_4->setText("waiting orders");
+   }
+   //printf("%f",ui->lineEdit_tkf->text().toDouble());
    //emit signal_set_pos(ui->lineEdit->text().toFloat(),ui->lineEdit_2->text().toFloat(),ui->lineEdit_3->text().toFloat());
 }
 
 void MainWindow::data_clear(){
-    ui->label_6->setText("0.00");
-    ui->label_4->setText("0.00");
-    ui->label->setText("0.00");
+    ui->PosxValueLabel->setText("0.00");
+    ui->PosyValueLabel->setText("0.00");
+    ui->PoszValueLabel->setText("0.00");
+    ui->label_vision_x->setText("0.00");
+    ui->label_vision_y->setText("0.00");
+    ui->label_vision_z->setText("0.00");
     ui->lineEdit->setText("0.00");
     ui->lineEdit_2->setText("0.00");
     ui->lineEdit_3->setText("0.00");
     curve->setSamples({},{});
+    curve_vision->setSamples({},{});
     ui->qwtPlot->replot();
-    xdata={};
-    ydata={};
+    xdata_pos={};
+    ydata_pos={};
+    zdata_pos={};
+    xdata_vision={};
+    ydata_vision={};
+    zdata_vision={};
     ui->verticalSlider->setValue(0);
+    ui->lineEdit_tkf->setText("0");
+    dst_arrived=2;
+    ui->lineEdit_offb_state->setText("no offboard");
+    count_tset=0;
+    count_pos=0;
 }
 
 void MainWindow::get_back(){
-    m_objThread->start();
-    emit signal_back(0,0,0,0);
+    ui->lineEdit->setText("0.00");
+    ui->lineEdit_2->setText("0.00");
+    ui->lineEdit_3->setText("0.00");
 }
 
 void MainWindow::show_speed(int value){
     ui->label_8->setText(QString::number((double)value/50));
+}
+
+void MainWindow::save_log(){
+    double M[xdata_pos.count()][6];
+  for(int i=0;i<xdata_pos.count();++i){
+      M[i][0]=xdata_pos[i];
+  }
+  for(int i=0;i<xdata_pos.count();++i){
+      M[i][1]=xdata_vision[i];
+  }
+  for(int i=0;i<xdata_pos.count();++i){
+      M[i][2]=ydata_pos[i];
+  }
+  for(int i=0;i<xdata_pos.count();++i){
+      M[i][3]=ydata_vision[i];
+  }
+  for(int i=0;i<xdata_pos.count();++i){
+      M[i][4]=zdata_pos[i];
+  }
+  for(int i=0;i<xdata_pos.count();++i){
+      M[i][5]=zdata_vision[i];
+  }
+  auto t = chrono::system_clock::to_time_t(std::chrono::system_clock::now());
+  stringstream ss;
+  ss << "/home/x/qt_ws1/logs/"<<"log_"<<put_time(std::localtime(&t), "%Y-%m-%d %H:%M:%S")<<".txt";
+  string nameLogStr = ss.str();
+  ofstream LogStream(nameLogStr);
+  for(int i=0;i<xdata_pos.count();i++)
+      for(int j=0;j<6;j++)
+          if(j!=5){
+             LogStream<<M[i][j]<<" ";
+          }
+          else{
+             LogStream<<M[i][j]<<"\n";
+          }
+  LogStream.close();
 }
